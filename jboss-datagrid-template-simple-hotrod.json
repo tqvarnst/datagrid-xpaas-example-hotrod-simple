@@ -1,0 +1,419 @@
+{
+    "kind": "Template",
+    "apiVersion": "v1",
+    "metadata": {
+        "annotations": {
+            "iconClass": "icon-jboss",
+            "description": "Application template JBoss Data Grid Simple HotRod Example",
+            "tags": "datagrid,jboss,xpaas",
+            "version": "1.2.0"
+        },
+        "name": "jdg-simple-hotrod-example"
+    },
+    "labels": {
+        "template": "jdg-simple-hotrod-example",
+        "xpaas": "1.2.0"
+    },
+    "parameters": [
+        {
+            "description": "The name for the application.",
+            "name": "APPLICATION_NAME",
+            "value": "myapp",
+            "required": true
+        },
+        {
+            "description": "Custom hostname for service routes.  Leave blank for default hostname, e.g.: <application-name>.<project>.<default-domain-suffix>",
+            "name": "APPLICATION_DOMAIN",
+            "value": "",
+            "required": false
+        },
+        {
+            "description": "EAP Release version, e.g. 6.4, etc.",
+            "name": "EAP_RELEASE",
+            "value": "6.4",
+            "required": false
+        },
+        {
+            "description": "Git source URI for application",
+            "name": "GIT_URI",
+            "value": "https://github.com/tqvarnst/datagrid-xpaas-example-hotrod-simple",
+            "required": false
+        },
+        {
+            "description": "Git branch/tag reference",
+            "name": "GIT_REF",
+            "value": "master",
+            "required": false
+        },
+        {
+            "description": "Path within Git project to build; empty for root project directory.",
+            "name": "GIT_CONTEXT_DIR",
+            "value": "",
+            "required": false
+        },
+        {
+            "description": "Github trigger secret",
+            "name": "GITHUB_TRIGGER_SECRET",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression"
+        },
+        {
+            "description": "Generic build trigger secret",
+            "name": "GENERIC_TRIGGER_SECRET",
+            "from": "[a-zA-Z0-9]{8}",
+            "generate": "expression"
+        }
+    ],
+    "objects": [
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "spec": {
+                "ports": [
+                    {
+                        "port": 11222,
+                        "targetPort": 11222
+                    }
+                ],
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}-jdg"
+                }
+            },
+            "metadata": {
+                "name": "${APPLICATION_NAME}-datagrid-hotrod",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                },
+                "annotations": {
+                    "description": "Hot Rod service for clustered applications."
+                }
+            }
+        },
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "spec": {
+                "ports": [
+                    {
+                        "port": 8080,
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}-eap"
+                }
+            },
+            "metadata": {
+                "name": "${APPLICATION_NAME}-eap-web",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-eap"
+                },
+                "annotations": {
+                    "description": "The web server's http port."
+                }
+            }
+        },
+        {
+            "kind": "Service",
+            "apiVersion": "v1",
+            "spec": {
+                "ports": [
+                    {
+                        "port": 8888,
+                        "targetPort": 8888
+                    }
+                ],
+                "portalIP": "None",
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}-eap"
+                }
+            },
+            "metadata": {
+                "name": "${APPLICATION_NAME}-eap-ping",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-eap"
+                },
+                "annotations": {
+                    "description": "Ping service for clustered applications."
+                }
+            }
+        },
+        {
+            "kind": "Route",
+            "apiVersion": "v1",
+            "id": "${APPLICATION_NAME}-http-route",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-http-route",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-eap"
+                },
+                "annotations": {
+                    "description": "Route for application's http service."
+                }
+            },
+            "spec": {
+                "host": "${APPLICATION_HOSTNAME}",
+                "to": {
+                    "name": "${APPLICATION_NAME}-eap"
+                }
+            }
+        },
+        {
+            "kind": "ImageStream",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-eap",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-eap"
+                }
+            }
+        },
+        {
+            "kind": "BuildConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}",
+                "labels": {
+                    "application": "${APPLICATION_NAME}"
+                }
+            },
+            "spec": {
+                "source": {
+                    "type": "Git",
+                    "git": {
+                        "uri": "${GIT_URI}",
+                        "ref": "${GIT_REF}"
+                    },
+                    "contextDir":"${GIT_CONTEXT_DIR}"
+                },
+                "strategy": {
+                    "type": "Source",
+                    "sourceStrategy": {
+                        "from": {
+                            "kind": "ImageStreamTag",
+                            "namespace": "openshift",
+                            "name": "jboss-eap6-openshift:${EAP_RELEASE}"
+                        }
+                    }
+                },
+                "output": {
+                    "to": {
+                        "kind": "ImageStreamTag",
+                        "name": "${APPLICATION_NAME}:latest"
+                    }
+                },
+                "triggers": [
+                    {
+                        "type": "GitHub",
+                        "github": {
+                            "secret": "${GITHUB_TRIGGER_SECRET}"
+                        }
+                    },
+                    {
+                        "type": "Generic",
+                        "generic": {
+                            "secret": "${GENERIC_TRIGGER_SECRET}"
+                        }
+                    },
+                    {
+                        "type": "ImageChange",
+                        "imageChange": {}
+                    }
+                ]
+            }
+        },
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-eap",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-eap"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "triggers": [
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "${APPLICATION_NAME}-eap"
+                            ],
+                            "from": {
+                                "kind": "ImageStream",
+                                "name": "${APPLICATION_NAME}-eap"
+                            }
+                        }
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}-eap"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${APPLICATION_NAME}-eap",
+                        "labels": {
+                            "deploymentConfig": "${APPLICATION_NAME}-eap",
+                            "application": "${APPLICATION_NAME}-eap"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "${APPLICATION_NAME}-eap",
+                                "image": "${APPLICATION_NAME}-eap",
+                                "imagePullPolicy": "Always",
+                                "readinessProbe": {
+                                    "exec": {
+                                        "command": [
+                                            "/bin/bash",
+                                            "-c",
+                                            "/opt/eap/bin/readinessProbe.sh"
+                                        ]
+                                    }
+                                },
+                                "ports": [
+                                    {
+                                        "name": "http",
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "ping",
+                                        "containerPort": 8888,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "OPENSHIFT_DNS_PING_SERVICE_NAME",
+                                        "value": "${APPLICATION_NAME}-eap-ping"
+                                    },
+                                    {
+                                        "name": "OPENSHIFT_DNS_PING_SERVICE_PORT",
+                                        "value": "8888"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "kind": "DeploymentConfig",
+            "apiVersion": "v1",
+            "metadata": {
+                "name": "${APPLICATION_NAME}-jdg",
+                "labels": {
+                    "application": "${APPLICATION_NAME}-jdg"
+                }
+            },
+            "spec": {
+                "strategy": {
+                    "type": "Recreate"
+                },
+                "triggers": [
+                    {
+                        "type": "ImageChange",
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                                "${APPLICATION_NAME}"
+                            ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "datagrid65-openshift:latest"
+                            }
+                        }
+                    }
+                ],
+                "replicas": 1,
+                "selector": {
+                    "deploymentConfig": "${APPLICATION_NAME}"
+                },
+                "template": {
+                    "metadata": {
+                        "name": "${APPLICATION_NAME}",
+                        "labels": {
+                            "deploymentConfig": "${APPLICATION_NAME}",
+                            "application": "${APPLICATION_NAME}"
+                        }
+                    },
+                    "spec": {
+                        "terminationGracePeriodSeconds": 60,
+                        "containers": [
+                            {
+                                "name": "${APPLICATION_NAME}",
+                                "image": "jboss-datagrid-6/datagrid65-openshift:latest",
+                                "imagePullPolicy": "Always",
+                                "readinessProbe": {
+                                    "exec": {
+                                        "command": [
+                                            "/bin/bash",
+                                            "-c",
+                                            "/opt/datagrid/bin/readinessProbe.sh"
+                                        ]
+                                    }
+                                },
+                                "ports": [
+                                    {
+                                        "name": "jolokia",
+                                        "containerPort": 8778,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "http",
+                                        "containerPort": 8080,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "ping",
+                                        "containerPort": 8888,
+                                        "protocol": "TCP"
+                                    },
+                                    {
+                                        "name": "hotrod",
+                                        "containerPort": 11222,
+                                        "protocol": "TCP"
+                                    }
+                                ],
+                                "env": [
+                                    {
+                                        "name": "OPENSHIFT_KUBE_PING_LABELS",
+                                        "value": "application=${APPLICATION_NAME}-jdg-ping"
+                                    },
+                                    {
+                                        "name": "OPENSHIFT_KUBE_PING_NAMESPACE",
+                                        "valueFrom": {
+                                            "fieldRef": {
+                                                "fieldPath": "metadata.namespace"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "INFINISPAN_CONNECTORS",
+                                        "value": "hotrod"
+                                    },
+                                    {
+                                        "name": "HOTROD_CACHE_CONTAINER",
+                                        "value": "clustered"
+                                    },
+                                    {
+                                        "name": "HOTROD_SOCKET_BINDING",
+                                        "value": "hotrod"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
