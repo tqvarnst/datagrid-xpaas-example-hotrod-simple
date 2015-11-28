@@ -29,10 +29,10 @@ printf "127.0.0.1\tmyapp-myproject.apps.example.com" | sudo tee -a /etc/hosts
 for key in {1..100}
 do
   curl -X PUT -d "DATA for key $key
-" http://myapp-myproject.apps.example.com:8080/rest/mycache/$key
+" http://myapp-myproject.apps.example.com/rest/mycache/$key
 done
 ```
-        curl http://myapp-myproject.apps.example.com:8080/rest/mycache/56
+        curl http://myapp-myproject.apps.example.com/rest/mycache/56
 
 4. Show the topology of the cluster
 5. Connect to the terminal in one of the nodes
