@@ -2,9 +2,10 @@
     "kind": "ImageStream",
     "apiVersion": "v1",
     "metadata": {
-        "name": "jboss-datagrid65-openshift",
+        "name": "datagrid65-openshift",
         "annotations": {
-            "description": "ImageStream definitions for JBoss Data Grid"
+           "openshift.io/image.insecureRepository": "true",
+           "description": "ImageStream definitions for JBoss Data Grid"
         }
     },
     "spec": {
