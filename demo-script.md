@@ -1,10 +1,11 @@
 #####################
 # Prep
 #####################
-
+```
 oc new-project myproject
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):default -n $(oc project -q)
 printf "127.0.0.1\tmyapp-myproject.apps.example.com" | sudo tee -a /etc/hosts
+```
 
 
 #####################
