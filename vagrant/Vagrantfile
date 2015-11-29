@@ -22,7 +22,7 @@ Vagrant.configure(2) do |config|
   #config.vm.synced_folder '../', '/mnt/vagrant', type: 'rsync'
 
   #Always add rcm-img-docker to the /etc/hosts file
-  config.vm.provision "shell", inline: "sudo sed -i \"/^EOF$/i 10.16.48.187 rcm-img-docker01.build.eng.bos.redhat.com\" /etc/NetworkManager/dispatcher.d/99-hosts"
+  config.vm.provision "shell", inline: "sudo sed -i \"/^EOF$/i 10.16.48.187 rcm-img-docker01.build.eng.bos.redhat.com\" /etc/NetworkManager/dispatcher.d/99-hosts && sudo systemctl restart network"
 
   # config.vm.provision "shell", inline: <<-SHELL
   #   sudo systemctl stop docker > /dev/null 2>&1
