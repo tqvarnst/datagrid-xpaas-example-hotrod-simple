@@ -8,7 +8,7 @@
         }
     },
     "spec": {
-        "dockerImageRepository": "rcm-img-docker01.build.eng.bos.redhat.com:5001/jboss-datagrid-6/datagrid65-openshift",
+        "dockerImageRepository": "registry.access.redhat.com/jboss-datagrid-6/datagrid65-openshift",
         "tags": [
             {
                 "name": "1.2",

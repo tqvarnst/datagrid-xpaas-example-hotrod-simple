@@ -4,7 +4,8 @@
 ```
 $ oc new-project myproject
 $ oc policy add-role-to-user view system:serviceaccount:$(oc project -q):default -n $(oc project -q)
-printf "127.0.0.1\tmyapp-myproject.apps.example.com" | sudo tee -a /etc/hosts
+$ curl https://raw.githubusercontent.com/jboss-openshift/application-templates/master/datagrid/datagrid65-postgresql.json | oc create -n openshift -f -
+$ curl https://raw.githubusercontent.com/jboss-openshift/application-templates/master/datagrid/datagrid65-basic.json | oc create -n openshift -f -
 ```
 
 
@@ -13,7 +14,7 @@ printf "127.0.0.1\tmyapp-myproject.apps.example.com" | sudo tee -a /etc/hosts
 #####################
 1. Use the datagrid65-basic template to create an jdg-cluster with the following parameters
   - NAME: myapp
-  - CACHE_NAMES: mycluster
+  - CACHE_NAMES: mycache
   - MEMCACHE_CACHE: mycache
 2. When created scale the cluster to 4 nodes
 3. Show log files that the pods will join the cluster
@@ -27,13 +28,14 @@ printf "127.0.0.1\tmyapp-myproject.apps.example.com" | sudo tee -a /etc/hosts
 3. Use curl to enter some data into the cluster
 
 ```
-for key in {1..100}
+APP_PATH=$(oc describe route myapp | grep "^Host:" | awk '{ print $2 }')
+for key in {0..100}
 do
   curl -X PUT -d "DATA for key $key
-" http://myapp-myproject.apps.example.com/rest/mycache/$key
+" http://${APP_PATH}/rest/mycache/$key
 done
 ```
-        curl http://myapp-myproject.apps.example.com/rest/mycache/56
+        curl -H "Accept: application/json" http://${APP_PATH}/rest/mycache/56
 
 4. Show the topology of the cluster
 5. Connect to the terminal in one of the nodes
@@ -57,3 +59,11 @@ done
 ###################
 # Persistance
 ###################
+# myapp-demo2.apps.osedemo.com
+
+APP_PATH=$(oc describe route myapp | grep "^Host:" | awk '{ print $2 }')
+for key in {0..100}
+do
+  curl -X PUT -d "DATA for key $key
+" http://${APP_PATH}/rest/mycache/$key
+done
